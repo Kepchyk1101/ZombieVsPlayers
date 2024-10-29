@@ -1,0 +1,21 @@
+[versions]
+johnrengelman-shadow = '8.1.1'
+freefair-lombok = '8.4'
+projectlombok-lombok = '1.18.30'
+destroystokyo-paper-api = '1.16.5-R0.1-SNAPSHOT'
+okaeri-configs = '5.0.5'
+aikar-acf-paper = '0.5.1-SNAPSHOT'
+j256-ormlite-jdbc = '6.1'
+
+[libraries]
+projectlombok-lombok = { module = 'org.projectlombok:lombok', version.ref = 'projectlombok-lombok' }
+destroystokyo-paper-api = { module = 'com.destroystokyo.paper:paper-api', version.ref = 'destroystokyo-paper-api' }
+okaeri-configs-yaml-bukkit = { module = 'eu.okaeri:okaeri-configs-yaml-bukkit', version.ref = 'okaeri-configs' }
+okaeri-configs-serdes-bukkit = { module = 'eu.okaeri:okaeri-configs-serdes-bukkit', version.ref = 'okaeri-configs' }
+okaeri-configs-validator-okaeri = { module = 'eu.okaeri:okaeri-configs-validator-okaeri', version.ref = 'okaeri-configs' }
+aikar-acf-paper = { module = 'co.aikar:acf-paper', version.ref = 'aikar-acf-paper' }
+j256-ormlite-jdbc = { module = 'com.j256.ormlite:ormlite-jdbc', version.ref = 'j256-ormlite-jdbc' }
+
+[plugins]
+johnrengelman-shadow = { id = 'com.github.johnrengelman.shadow', version.ref = 'johnrengelman-shadow' }
+freefair-lombok = { id = 'io.freefair.lombok', version.ref = 'freefair-lombok' }
