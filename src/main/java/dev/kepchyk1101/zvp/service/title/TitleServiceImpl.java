@@ -8,6 +8,7 @@ import lombok.experimental.FieldDefaults;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
 import net.kyori.adventure.title.Title;
+import org.bukkit.Bukkit;
 import org.bukkit.command.CommandSender;
 import org.bukkit.plugin.Plugin;
 import org.bukkit.scheduler.BukkitRunnable;
@@ -57,6 +58,11 @@ public class TitleServiceImpl implements TitleService {
   @Override
   public void sendTitleWithTypingEffect(@NotNull CommandSender recipient, @NotNull String title, int delay, Object @NotNull ... replacers) {
     sendRawTitleWithTypingEffect(recipient, TextUtility.applyReplacers(configuration.getTitles().get(title), replacers), delay);
+  }
+  
+  @Override
+  public void broadcastTitle(@NotNull String title, int delay, Object @NotNull ... replacers) {
+    Bukkit.getOnlinePlayers().forEach(player -> sendTitleWithTypingEffect(player, title, delay, replacers));
   }
   
 }

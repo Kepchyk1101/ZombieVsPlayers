@@ -10,4 +10,6 @@ public interface TitleService extends Service {
   
   void sendTitleWithTypingEffect(@NotNull CommandSender recipient, @NotNull String title, int delay, Object @NotNull ... replacers);
   
+  void broadcastTitle(@NotNull String title, int delay, Object @NotNull ... replacers);
+  
 }

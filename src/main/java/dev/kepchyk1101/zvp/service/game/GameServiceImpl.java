@@ -1,6 +1,7 @@
 package dev.kepchyk1101.zvp.service.game;
 
 import dev.kepchyk1101.zvp.configuration.PluginConfiguration;
+import dev.kepchyk1101.zvp.exception.GameAlreadyStarted;
 import dev.kepchyk1101.zvp.service.player.PlayerService;
 import dev.kepchyk1101.zvp.service.title.TitleService;
 import dev.kepchyk1101.zvp.service.zombie.ZombieService;
@@ -56,6 +57,9 @@ public class GameServiceImpl implements GameService, Listener {
   @NonFinal
   boolean playersWon = false;
   
+  @NonFinal
+  boolean started = false;
+  
   @Override
   public void enable() {
     Bukkit.getOnlinePlayers().forEach(this::join);
@@ -99,6 +103,20 @@ public class GameServiceImpl implements GameService, Listener {
     if (playerService.isPlayer(player)) {
       playerService.join(player);
     }
+  }
+  
+  @Override
+  public void start() {
+    if (started) {
+      throw new GameAlreadyStarted("Game already started!");
+    }
+    started = true;
+    titleService.broadcastTitle("gameStarted", 2);
+  }
+  
+  @Override
+  public boolean isStarted() {
+    return started;
   }
   
   @EventHandler

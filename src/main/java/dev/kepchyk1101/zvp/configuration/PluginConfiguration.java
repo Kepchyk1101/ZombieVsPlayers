@@ -60,6 +60,7 @@ public class PluginConfiguration extends OkaeriConfig {
     put("zombiesWonTitle", "&aПобедили зомби!");
     put("daysRemaining", "&aОсталось %days-remaining% дней!");
     put("judgmentNight", "&4&lСУДНАЯ НОЧЬ");
+    put("gameStarted", "&aВЫЖИВАНИЕ НАЧАЛОСЬ");
   }};
   
   @SuppressWarnings("UnusedReturnValue")

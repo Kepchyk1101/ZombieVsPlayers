@@ -1,5 +1,6 @@
 package dev.kepchyk1101.zvp;
 
+import co.aikar.commands.Locales;
 import co.aikar.commands.PaperCommandManager;
 import com.j256.ormlite.jdbc.JdbcPooledConnectionSource;
 import com.j256.ormlite.support.ConnectionSource;
@@ -105,6 +106,7 @@ public class ZombieVsPlayers extends JavaPlugin {
     gameService.enable();
     
     PaperCommandManager commandManager = new PaperCommandManager(this);
+    commandManager.getLocales().setDefaultLocale(Locales.RUSSIAN);
     commandManager.registerCommand(new ZombieVsPlayerCommand(gameService, configuration));
     
     papiExpansion = new PAPIExpansion(gameService);

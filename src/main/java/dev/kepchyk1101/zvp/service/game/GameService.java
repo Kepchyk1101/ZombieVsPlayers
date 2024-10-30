@@ -12,4 +12,8 @@ public interface GameService extends Service {
   
   void join(@NotNull Player player);
   
+  void start();
+  
+  boolean isStarted();
+  
 }

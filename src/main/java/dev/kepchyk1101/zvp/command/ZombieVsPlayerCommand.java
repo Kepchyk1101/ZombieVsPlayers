@@ -45,4 +45,19 @@ public class ZombieVsPlayerCommand extends BaseCommand {
     player.sendMessage(Component.text("Успешно").color(NamedTextColor.GREEN));
   }
   
+  @Subcommand("start")
+  public void start(@NotNull Player player) {
+    if (gameService.isStarted()) {
+      player.sendMessage(Component.text("Игра уже началась!").color(NamedTextColor.RED));
+      return;
+    }
+    
+    gameService.start();
+  }
+  
+  @Subcommand("stop")
+  public void stop(@NotNull Player player) {
+    player.sendMessage(Component.text("Не реализовано еще. Чё надо?").color(NamedTextColor.YELLOW));
+  }
+  
 }
