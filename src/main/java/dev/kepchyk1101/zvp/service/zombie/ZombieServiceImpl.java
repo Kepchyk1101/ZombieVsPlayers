@@ -7,16 +7,16 @@ import dev.kepchyk1101.zvp.service.location.LocationService;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
-import net.skinsrestorer.api.SkinsRestorerProvider;
-import net.skinsrestorer.api.property.SkinIdentifier;
 import org.bukkit.Bukkit;
 import org.bukkit.GameMode;
 import org.bukkit.Material;
 import org.bukkit.World;
 import org.bukkit.entity.IronGolem;
+import org.bukkit.entity.Mob;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
+import org.bukkit.event.entity.EntityTargetEvent;
 import org.bukkit.event.inventory.InventoryOpenEvent;
 import org.bukkit.event.inventory.InventoryType;
 import org.bukkit.event.player.PlayerInteractEvent;
@@ -24,7 +24,6 @@ import org.bukkit.event.player.PlayerItemConsumeEvent;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.plugin.Plugin;
 import org.bukkit.potion.PotionEffect;
-import org.bukkit.potion.PotionEffectType;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.HashSet;
@@ -35,6 +34,9 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
 public class ZombieServiceImpl implements ZombieService, Listener {
+  
+  @SuppressWarnings("DataFlowIssue")
+  @NotNull World world = Bukkit.getWorld("world");
   
   @NotNull Plugin plugin;
   
@@ -55,11 +57,7 @@ public class ZombieServiceImpl implements ZombieService, Listener {
         .collect(Collectors.toSet())
     );
     Bukkit.getScheduler().runTaskTimerAsynchronously(plugin, this::setFireOnZombies, 0L, configuration.getSunFire().getUpdateDelayTicks());
-    Bukkit.getScheduler().runTaskTimer(plugin, () -> {
-      Bukkit.getWorlds().forEach(world -> {
-        world.getEntitiesByClass(IronGolem.class).forEach(this::test);
-      });
-    }, 0L, 60L);
+    Bukkit.getScheduler().runTaskTimer(plugin, () -> world.getEntitiesByClass(IronGolem.class).forEach(this::golem), 0L, configuration.getGolem().getUpdateDelayTicks());
   }
   
   @Override
@@ -80,17 +78,17 @@ public class ZombieServiceImpl implements ZombieService, Listener {
   
   @Override
   public void join(@NotNull Player player) {
-    SkinsRestorerProvider.get().getSkinApplier(Player.class).applySkin(player, SkinIdentifier.ofPlayer(UUID.fromString("02b0e86d-c86a-4ae7-bc41-015d21f80c1c")));
-    Bukkit.getScheduler().runTaskLater(plugin, () -> player.addPotionEffects(configuration.getEffects()), 5L);
+//    SkinsRestorerProvider.get().getSkinApplier(Player.class).applySkin(player, SkinIdentifier.ofPlayer(UUID.fromString("02b0e86d-c86a-4ae7-bc41-015d21f80c1c")));
+    Bukkit.dispatchCommand(Bukkit.getConsoleSender(), "skin set zombie " + player.getName());
     zombies.add(player.getUniqueId());
+    world.getEntitiesByClass(Mob.class)
+      .stream()
+      .filter(mob -> mob.getTarget() == player)
+      .forEach(mob -> mob.setTarget(null));
   }
   
   @Override
   public void quit(@NotNull Player player) {
-    configuration.getEffects()
-      .stream()
-      .map(PotionEffect::getType)
-      .forEach(player::removePotionEffect);
     zombies.remove(player.getUniqueId());
   }
   
@@ -106,11 +104,25 @@ public class ZombieServiceImpl implements ZombieService, Listener {
       return;
     }
     
-    switch (event.getItem().getType()) {
-      case ROTTEN_FLESH -> player.setFoodLevel(player.getFoodLevel() + 10);
-      case SPIDER_EYE -> player.addPotionEffect(new PotionEffect(PotionEffectType.REGENERATION, 60, 0));
-      case POISONOUS_POTATO -> player.setFoodLevel(player.getFoodLevel() + 5);
+    Set<PotionEffect> effects = configuration.getFoodEffects().get(event.getItem().getType());
+    if (effects == null) {
+      return;
     }
+    
+    player.addPotionEffects(effects);
+  }
+  
+  @EventHandler
+  private void on(@NotNull EntityTargetEvent event) {
+    if (!(event.getTarget() instanceof Player player)) {
+      return;
+    }
+    
+    if (!isZombie(player)) {
+      return;
+    }
+    
+    event.setCancelled(true);
   }
   
   @EventHandler
@@ -125,7 +137,6 @@ public class ZombieServiceImpl implements ZombieService, Listener {
     }
     
     event.setCancelled(true);
-    
   }
   
   @EventHandler
@@ -152,8 +163,12 @@ public class ZombieServiceImpl implements ZombieService, Listener {
       .forEach(this::setFireOnZombie);
   }
   
-  public void test(@NotNull IronGolem ironGolem) {
-    locationService.findNearestPlayerInRadius(ironGolem.getLocation(), 15).ifPresent(ironGolem::setTarget);
+  public void golem(@NotNull IronGolem ironGolem) {
+    locationService.findNearestPlayerInRadius(
+        ironGolem.getLocation(),
+        configuration.getGolem().getRadius()
+      )
+      .ifPresent(ironGolem::setTarget);
   }
   
   @Override
@@ -164,6 +179,11 @@ public class ZombieServiceImpl implements ZombieService, Listener {
   private boolean shouldBurn(@NotNull Player player) {
     World world = player.getWorld();
     if (player.getGameMode() != GameMode.SURVIVAL) {
+      return false;
+    }
+    
+    long currentDay = (world.getFullTime() / 24000) + 1;
+    if (currentDay >= 6) {
       return false;
     }
     
@@ -179,8 +199,7 @@ public class ZombieServiceImpl implements ZombieService, Listener {
       return false;
     }
     
-    Material blockType = player.getLocation().getBlock().getType();
-    return blockType != Material.WATER && blockType != Material.LEGACY_STATIONARY_WATER;
+    return player.getLocation().getBlock().getType() != Material.WATER;
   }
   
 }

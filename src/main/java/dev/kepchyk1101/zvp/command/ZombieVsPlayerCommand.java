@@ -41,6 +41,7 @@ public class ZombieVsPlayerCommand extends BaseCommand {
   @Subcommand("showremainingdays")
   public void showRemainingDays(@NotNull Player player, boolean show) {
     configuration.setShowRemainingDaysTitle(show);
+    configuration.saveAsync();
     player.sendMessage(Component.text("Успешно").color(NamedTextColor.GREEN));
   }
   

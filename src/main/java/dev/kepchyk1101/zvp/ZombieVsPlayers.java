@@ -26,6 +26,7 @@ import lombok.AccessLevel;
 import lombok.SneakyThrows;
 import lombok.experimental.FieldDefaults;
 import org.bukkit.Bukkit;
+import org.bukkit.GameRule;
 import org.bukkit.event.Listener;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.checkerframework.checker.nullness.qual.MonotonicNonNull;
@@ -113,6 +114,8 @@ public class ZombieVsPlayers extends JavaPlugin {
   @Override
   @SneakyThrows
   public void onDisable() {
+    Bukkit.getWorld("world").setGameRule(GameRule.DO_DAYLIGHT_CYCLE, true);
+    
     papiExpansion.unregister();
     
     gameService.disable();

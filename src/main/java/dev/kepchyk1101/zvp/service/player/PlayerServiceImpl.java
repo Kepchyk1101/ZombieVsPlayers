@@ -5,6 +5,7 @@ import dev.kepchyk1101.zvp.repository.impl.PlayerRepository;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
+import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import org.bukkit.event.Listener;
 import org.jetbrains.annotations.NotNull;
@@ -51,6 +52,7 @@ public class PlayerServiceImpl implements PlayerService, Listener {
   @Override
   public void join(@NotNull Player player) {
     players.add(player.getUniqueId());
+    Bukkit.dispatchCommand(Bukkit.getConsoleSender(), "skin clear " + player.getName());
   }
   
   @Override
