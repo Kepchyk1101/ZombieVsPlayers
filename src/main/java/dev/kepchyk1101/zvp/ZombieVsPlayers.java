@@ -97,13 +97,18 @@ public class ZombieVsPlayers extends JavaPlugin {
     Bukkit.getPluginManager().registerEvents((Listener) playerService, this);
     playerService.enable();
     
-    zombieService = new ZombieServiceImpl(this, zombieRepository, locationService, configuration.getZombie());
+    zombieService = new ZombieServiceImpl(this, zombieRepository, locationService, configuration.getZombie(), configuration);
     Bukkit.getPluginManager().registerEvents((Listener) zombieService, this);
     zombieService.enable();
     
     gameService = new GameServiceImpl(this, zombieService, playerService, titleService, configuration);
     Bukkit.getPluginManager().registerEvents((Listener) gameService, this);
     gameService.enable();
+    if (configuration.isStarted()) {
+      gameService.setStarted(true);
+      gameService.setCurrentDay(configuration.getDay());
+      Bukkit.getScheduler().runTaskTimerAsynchronously(this, gameService::tick, 0L, configuration.getTickerDelay());
+    }
     
     PaperCommandManager commandManager = new PaperCommandManager(this);
     commandManager.getLocales().setDefaultLocale(Locales.RUSSIAN);

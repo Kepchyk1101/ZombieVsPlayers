@@ -42,6 +42,7 @@ public class PAPIExpansion extends PlaceholderExpansion {
   public @Nullable String onPlaceholderRequest(Player player, @NotNull String params) {
     return switch (params) {
       case "team" -> xzKakNazvat.get(gameService.getTeamOf(player));
+      case "day" -> String.valueOf(gameService.getCurrentDay());
       default -> null;
     };
   }

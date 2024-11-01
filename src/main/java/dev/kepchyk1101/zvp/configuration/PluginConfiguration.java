@@ -21,13 +21,18 @@ import java.util.concurrent.CompletableFuture;
 @FieldDefaults(level = AccessLevel.PRIVATE)
 public class PluginConfiguration extends OkaeriConfig {
   
+  boolean started = false;
+  int day = 1;
+  
   Database database = new Database("jdbc:sqlite:plugins/ZombieVsPlayers/data.db", "username", "password");
   
-  long dayStartsFrom = 5500;
-  long dayStartsTo = 6500;
+  long dayStartsFrom = 5500L;
+  long dayStartsTo = 6500L;
   
-  long nightStartsFrom = 11500;
-  long nightStartsTo = 12500;
+  long nightStartsFrom = 11500L;
+  long nightStartsTo = 12500L;
+  
+  long tickerDelay = 60L;
   
   @Comment("Насколько \"продлить\" день в тиках")
   long freezeDay = 5 * 60 * 20L;

@@ -16,4 +16,12 @@ public interface GameService extends Service {
   
   boolean isStarted();
   
+  void setStarted(boolean started);
+  
+  long getCurrentDay();
+  
+  void setCurrentDay(long currentDay);
+  
+  void tick();
+  
 }

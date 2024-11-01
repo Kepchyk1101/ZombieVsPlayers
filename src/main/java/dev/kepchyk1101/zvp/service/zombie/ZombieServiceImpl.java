@@ -46,6 +46,8 @@ public class ZombieServiceImpl implements ZombieService, Listener {
   
   @NotNull PluginConfiguration.Zombie configuration;
   
+  @NotNull PluginConfiguration pluginConfiguration;
+  
   @NotNull Set<UUID> zombies = new HashSet<>();
   
   @Override
@@ -182,8 +184,7 @@ public class ZombieServiceImpl implements ZombieService, Listener {
       return false;
     }
     
-    long currentDay = (world.getFullTime() / 24000) + 1;
-    if (currentDay >= 6) {
+    if (pluginConfiguration.getDay() >= 6) {
       return false;
     }
     

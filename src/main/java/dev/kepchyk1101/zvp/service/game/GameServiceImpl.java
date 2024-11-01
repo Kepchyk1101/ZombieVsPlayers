@@ -6,7 +6,9 @@ import dev.kepchyk1101.zvp.service.player.PlayerService;
 import dev.kepchyk1101.zvp.service.title.TitleService;
 import dev.kepchyk1101.zvp.service.zombie.ZombieService;
 import lombok.AccessLevel;
+import lombok.Getter;
 import lombok.RequiredArgsConstructor;
+import lombok.Setter;
 import lombok.experimental.FieldDefaults;
 import lombok.experimental.NonFinal;
 import org.bukkit.Bukkit;
@@ -18,6 +20,7 @@ import org.bukkit.event.Listener;
 import org.bukkit.event.entity.PlayerDeathEvent;
 import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.event.player.PlayerRespawnEvent;
+import org.bukkit.event.world.TimeSkipEvent;
 import org.bukkit.plugin.Plugin;
 import org.bukkit.potion.PotionEffect;
 import org.bukkit.potion.PotionEffectType;
@@ -46,9 +49,6 @@ public class GameServiceImpl implements GameService, Listener {
   @NotNull PluginConfiguration configuration;
   
   @NonFinal
-  long lastKnownDayTick;
-  
-  @NonFinal
   boolean dayFreeze = false;
   
   @NonFinal
@@ -58,12 +58,21 @@ public class GameServiceImpl implements GameService, Listener {
   boolean playersWon = false;
   
   @NonFinal
+  long lastKnownDayTick;
+  
+  @Getter
+  @Setter
+  @NonFinal
   boolean started = false;
+  
+  @Getter
+  @Setter
+  @NonFinal
+  long currentDay = 1L;
   
   @Override
   public void enable() {
     Bukkit.getOnlinePlayers().forEach(this::join);
-    Bukkit.getScheduler().runTaskTimerAsynchronously(plugin, this::updateZombieEffects, 0L, 60L);
   }
   
   @Override
@@ -112,11 +121,10 @@ public class GameServiceImpl implements GameService, Listener {
     }
     started = true;
     titleService.broadcastTitle("gameStarted", 2);
-  }
-  
-  @Override
-  public boolean isStarted() {
-    return started;
+    Bukkit.getScheduler().runTaskTimerAsynchronously(plugin, this::tick, 0L, configuration.getTickerDelay());
+    configuration.setStarted(true);
+    configuration.setDay((int) currentDay);
+    configuration.saveAsync();
   }
   
   @EventHandler
@@ -140,16 +148,15 @@ public class GameServiceImpl implements GameService, Listener {
       zombieService.join(player);
     }
     if (playerService.getPlayers().isEmpty()) {
-      Bukkit.getOnlinePlayers().forEach(op -> titleService.sendTitleWithTypingEffect(op, "zombiesWonTitle", 2));
+      titleService.broadcastTitle("zombiesWonTitle", 2);
     }
   }
   
-  private boolean isDayTransition(long currentTime) {
-    return currentTime > configuration.getDayStartsFrom() && currentTime < configuration.getDayStartsTo();
-  }
-  
-  private boolean isNightTransition(long currentTime) {
-    return currentTime > configuration.getNightStartsFrom() && currentTime < configuration.getNightStartsTo();
+  @EventHandler
+  private void on(@NotNull TimeSkipEvent event) {
+    if (event.getSkipReason() == TimeSkipEvent.SkipReason.NIGHT_SKIP && started) {
+      event.setCancelled(true);
+    }
   }
   
   private void applyEffects(Set<PotionEffect> applyEffects, Set<PotionEffect> removeEffects) {
@@ -170,10 +177,12 @@ public class GameServiceImpl implements GameService, Listener {
   
   private void checkDayCycleAndNotify(long currentTime) {
     if (currentTime < lastKnownDayTick) {
-      long daysPassed = world.getFullTime() / 24000;
-      long daysRemaining = 7 - daysPassed;
+      currentDay++;
+      configuration.setDay((int) currentDay);
+      configuration.saveAsync();
+      long daysRemaining = 7 - currentDay;
       
-      if (daysPassed + 1 >= 6) {
+      if (currentDay >= 6) {
         Set<PotionEffectType> allNightEffects = configuration.getZombie()
           .getNightEffects()
           .values()
@@ -189,55 +198,70 @@ public class GameServiceImpl implements GameService, Listener {
         });
       }
       
-      if (!judgment && daysRemaining == 0) {
-        Bukkit.getOnlinePlayers().forEach(player -> titleService.sendTitleWithTypingEffect(player, "judgmentNight", 2));
-        Bukkit.getOnlinePlayers().forEach(player -> player.playSound(player.getLocation(), configuration.getJudgmentNightSound(), 1.0f, 1.0f));
-        judgment = true;
+      if (!playersWon && currentDay == 8) {
+        if (!playerService.getPlayers().isEmpty()) {
+          titleService.broadcastTitle("playersWonTitle", 2);
+          playersWon = true;
+        }
+        lastKnownDayTick = currentTime;
         return;
       }
       
-      if (!playersWon && daysRemaining == -1) {
-        if (!playerService.getPlayers().isEmpty()) {
-          Bukkit.getOnlinePlayers().forEach(player -> titleService.sendTitleWithTypingEffect(player, "playersWonTitle", 2));
-          playersWon = true;
-        }
+      if (!judgment && currentDay == 7) {
+        titleService.broadcastTitle("judgmentNight", 2);
+        Bukkit.getOnlinePlayers().forEach(player -> player.playSound(player.getLocation(), configuration.getJudgmentNightSound(), 1.0f, 1.0f));
+        judgment = true;
+        lastKnownDayTick = currentTime;
         return;
       }
       
       if (!judgment && configuration.isShowRemainingDaysTitle()) {
-        Bukkit.getOnlinePlayers().forEach(player -> titleService.sendTitleWithTypingEffect(player, "daysRemaining", 2,
-          "%days-remaining%", daysRemaining));
+        titleService.broadcastTitle("daysRemaining", 2,
+          "%days-remaining%", daysRemaining);
       }
     }
     lastKnownDayTick = currentTime;
   }
   
-  private void updateZombieEffects() {
-    long currentTime = world.getTime();
-    long currentDay = world.getFullTime() / 24000;
-    if (!dayFreeze && currentTime > 4000 && currentTime < 4300) {
+  @Override
+  public void tick() {
+    long currentDayTimeTicks = world.getTime();
+    if (!dayFreeze && currentDayTimeTicks > 4000 && currentDayTimeTicks < 4300) {
       Bukkit.getScheduler().runTask(plugin, () -> {
+        System.out.println("FREEZE");
         world.setGameRule(GameRule.DO_DAYLIGHT_CYCLE, false);
         dayFreeze = true;
       });
       Bukkit.getScheduler().runTaskLater(plugin, () -> {
+        System.out.println("UNFREEZE");
+        world.setTime(4301);
         world.setGameRule(GameRule.DO_DAYLIGHT_CYCLE, true);
         dayFreeze = false;
       }, configuration.getFreezeDay());
     }
     
-    if (isDayTransition(currentTime)) {
-      Set<PotionEffect> effects = configuration.getZombie().getDayEffects().get(currentDay + 1);
+    if (isDayTransition(currentDayTimeTicks)) {
+      Set<PotionEffect> effects = configuration.getZombie().getDayEffects().get(currentDay);
       if (effects != null) {
         applyEffects(effects, Collections.emptySet());
       }
-    } else if (isNightTransition(currentTime)) {
-      Set<PotionEffect> effects = configuration.getZombie().getNightEffects().get(currentDay + 1);
+    } else if (isNightTransition(currentDayTimeTicks)) {
+      Set<PotionEffect> effects = configuration.getZombie().getNightEffects().get(currentDay);
       if (effects != null) {
         applyEffects(effects, Collections.emptySet());
       }
     }
-    checkDayCycleAndNotify(currentTime);
+    checkDayCycleAndNotify(currentDayTimeTicks);
+  }
+  
+  private boolean isDayTransition(long currentTime) {
+    return currentTime > configuration.getDayStartsFrom()
+      && currentTime < configuration.getDayStartsTo();
+  }
+  
+  private boolean isNightTransition(long currentTime) {
+    return currentTime > configuration.getNightStartsFrom()
+      && currentTime < configuration.getNightStartsTo();
   }
   
 }

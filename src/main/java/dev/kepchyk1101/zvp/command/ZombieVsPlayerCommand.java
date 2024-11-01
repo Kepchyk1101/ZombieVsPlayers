@@ -28,11 +28,6 @@ public class ZombieVsPlayerCommand extends BaseCommand {
   
   @NotNull PluginConfiguration configuration;
   
-  @Subcommand("test")
-  public void test(@NotNull Player player) {
-    player.sendMessage(Component.text(PlaceholderAPI.setPlaceholders(player, "%zvp_team%")));
-  }
-  
   @Subcommand("swap")
   public void swap(@NotNull CommandSender sender, @NotNull OnlinePlayer player, @NotNull GameTeam team) {
     gameService.swapTeam(player.getPlayer(), team);
@@ -58,6 +53,21 @@ public class ZombieVsPlayerCommand extends BaseCommand {
   @Subcommand("stop")
   public void stop(@NotNull Player player) {
     player.sendMessage(Component.text("Не реализовано еще. Чё надо?").color(NamedTextColor.YELLOW));
+  }
+  
+  @Subcommand("test")
+  public void test(@NotNull Player player) {
+    player.sendMessage(Component.text(PlaceholderAPI.setPlaceholders(player, "%zvp_team%")));
+  }
+  
+  @Subcommand("info")
+  public void info(@NotNull Player player) {
+    if (!gameService.isStarted()) {
+      player.sendMessage(Component.text("Игра еще не началась!").color(NamedTextColor.RED));
+      return;
+    }
+    
+    player.sendMessage(Component.text("Текущий день: " + gameService.getCurrentDay()));
   }
   
 }
