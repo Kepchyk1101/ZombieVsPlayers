@@ -87,6 +87,7 @@ public class ZombieServiceImpl implements ZombieService, Listener {
       .stream()
       .filter(mob -> mob.getTarget() == player)
       .forEach(mob -> mob.setTarget(null));
+    
   }
   
   @Override

@@ -146,6 +146,7 @@ public class GameServiceImpl implements GameService, Listener {
     if (playerService.isPlayer(player)) {
       playerService.quit(player);
       zombieService.join(player);
+      updateZombieEffects(world.getTime());
     }
     if (playerService.getPlayers().isEmpty()) {
       titleService.broadcastTitle("zombiesWonTitle", 2);
@@ -228,18 +229,21 @@ public class GameServiceImpl implements GameService, Listener {
     long currentDayTimeTicks = world.getTime();
     if (!dayFreeze && currentDayTimeTicks > 4000 && currentDayTimeTicks < 4300) {
       Bukkit.getScheduler().runTask(plugin, () -> {
-        System.out.println("FREEZE");
         world.setGameRule(GameRule.DO_DAYLIGHT_CYCLE, false);
         dayFreeze = true;
       });
       Bukkit.getScheduler().runTaskLater(plugin, () -> {
-        System.out.println("UNFREEZE");
         world.setTime(4301);
         world.setGameRule(GameRule.DO_DAYLIGHT_CYCLE, true);
         dayFreeze = false;
       }, configuration.getFreezeDay());
     }
     
+    updateZombieEffects(currentDayTimeTicks);
+    checkDayCycleAndNotify(currentDayTimeTicks);
+  }
+  
+  private void updateZombieEffects(long currentDayTimeTicks) {
     if (isDayTransition(currentDayTimeTicks)) {
       Set<PotionEffect> effects = configuration.getZombie().getDayEffects().get(currentDay);
       if (effects != null) {
@@ -251,7 +255,6 @@ public class GameServiceImpl implements GameService, Listener {
         applyEffects(effects, Collections.emptySet());
       }
     }
-    checkDayCycleAndNotify(currentDayTimeTicks);
   }
   
   private boolean isDayTransition(long currentTime) {

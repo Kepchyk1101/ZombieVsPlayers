@@ -93,7 +93,7 @@ public class ZombieVsPlayers extends JavaPlugin {
     locationService = new LocationServiceImpl();
     locationService.enable();
     
-    playerService = new PlayerServiceImpl(playerRepository);
+    playerService = new PlayerServiceImpl(playerRepository, configuration);
     Bukkit.getPluginManager().registerEvents((Listener) playerService, this);
     playerService.enable();
     
