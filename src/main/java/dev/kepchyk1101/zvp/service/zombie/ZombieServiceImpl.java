@@ -80,7 +80,6 @@ public class ZombieServiceImpl implements ZombieService, Listener {
   
   @Override
   public void join(@NotNull Player player) {
-//    SkinsRestorerProvider.get().getSkinApplier(Player.class).applySkin(player, SkinIdentifier.ofPlayer(UUID.fromString("02b0e86d-c86a-4ae7-bc41-015d21f80c1c")));
     Bukkit.dispatchCommand(Bukkit.getConsoleSender(), "skin set zombie " + player.getName());
     zombies.add(player.getUniqueId());
     world.getEntitiesByClass(Mob.class)
@@ -189,7 +188,7 @@ public class ZombieServiceImpl implements ZombieService, Listener {
       return false;
     }
     
-    if (world.getTime() > 12300 && world.getTime() < 23850) {
+    if (!isDayTransition(world.getTime())) {
       return false;
     }
     
@@ -202,6 +201,11 @@ public class ZombieServiceImpl implements ZombieService, Listener {
     }
     
     return player.getLocation().getBlock().getType() != Material.WATER;
+  }
+  
+  private boolean isDayTransition(long currentTime) {
+    return currentTime > pluginConfiguration.getDayStartsFrom()
+      && currentTime < pluginConfiguration.getDayStartsTo();
   }
   
 }

@@ -63,7 +63,7 @@ public class PluginConfiguration extends OkaeriConfig {
   Map<String, String> titles = new HashMap<>() {{
     put("playersWonTitle", "&aПобедили игроки!");
     put("zombiesWonTitle", "&aПобедили зомби!");
-    put("daysRemaining", "&aОсталось %days-remaining% дней!");
+    put("daysRemaining", "&a%left-declension% %days-remaining% %days-declension%!");
     put("judgmentNight", "&4&lСУДНАЯ НОЧЬ");
     put("gameStarted", "&aВЫЖИВАНИЕ НАЧАЛОСЬ");
   }};

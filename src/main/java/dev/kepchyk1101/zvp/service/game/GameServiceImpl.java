@@ -17,6 +17,7 @@ import org.bukkit.World;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
+import org.bukkit.event.entity.EntityDamageByEntityEvent;
 import org.bukkit.event.entity.PlayerDeathEvent;
 import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.event.player.PlayerRespawnEvent;
@@ -27,7 +28,6 @@ import org.bukkit.potion.PotionEffectType;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.Collection;
-import java.util.Collections;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -154,6 +154,26 @@ public class GameServiceImpl implements GameService, Listener {
   }
   
   @EventHandler
+  private void on(@NotNull EntityDamageByEntityEvent event) {
+    if (!(event.getEntity() instanceof Player damaged)) {
+      return;
+    }
+    
+    if (!(event.getDamager() instanceof Player damager)) {
+      return;
+    }
+    
+    if (zombieService.isZombie(damaged) && zombieService.isZombie(damager)) {
+      event.setCancelled(true);
+      return;
+    }
+    
+    if (playerService.isPlayer(damaged) && playerService.isPlayer(damager)) {
+      event.setCancelled(true);
+    }
+  }
+  
+  @EventHandler
   private void on(@NotNull TimeSkipEvent event) {
     if (event.getSkipReason() == TimeSkipEvent.SkipReason.NIGHT_SKIP && started) {
       event.setCancelled(true);
@@ -218,7 +238,9 @@ public class GameServiceImpl implements GameService, Listener {
       
       if (!judgment && configuration.isShowRemainingDaysTitle()) {
         titleService.broadcastTitle("daysRemaining", 2,
-          "%days-remaining%", daysRemaining);
+          "%days-remaining%", daysRemaining,
+          "%days-declension%", getDaysString((int) daysRemaining),
+          "%left-declension%", getLeftString((int) daysRemaining));
       }
     }
     lastKnownDayTick = currentTime;
@@ -227,6 +249,12 @@ public class GameServiceImpl implements GameService, Listener {
   @Override
   public void tick() {
     long currentDayTimeTicks = world.getTime();
+    checkDayFreeze(currentDayTimeTicks);
+    updateZombieEffects(currentDayTimeTicks);
+    checkDayCycleAndNotify(currentDayTimeTicks);
+  }
+  
+  private void checkDayFreeze(long currentDayTimeTicks) {
     if (!dayFreeze && currentDayTimeTicks > 4000 && currentDayTimeTicks < 4300) {
       Bukkit.getScheduler().runTask(plugin, () -> {
         world.setGameRule(GameRule.DO_DAYLIGHT_CYCLE, false);
@@ -238,21 +266,18 @@ public class GameServiceImpl implements GameService, Listener {
         dayFreeze = false;
       }, configuration.getFreezeDay());
     }
-    
-    updateZombieEffects(currentDayTimeTicks);
-    checkDayCycleAndNotify(currentDayTimeTicks);
   }
   
   private void updateZombieEffects(long currentDayTimeTicks) {
     if (isDayTransition(currentDayTimeTicks)) {
       Set<PotionEffect> effects = configuration.getZombie().getDayEffects().get(currentDay);
       if (effects != null) {
-        applyEffects(effects, Collections.emptySet());
+        applyEffects(effects, getAllNightZombieEffects());
       }
     } else if (isNightTransition(currentDayTimeTicks)) {
       Set<PotionEffect> effects = configuration.getZombie().getNightEffects().get(currentDay);
       if (effects != null) {
-        applyEffects(effects, Collections.emptySet());
+        applyEffects(effects, getAllDayZombieEffects());
       }
     }
   }
@@ -265,6 +290,51 @@ public class GameServiceImpl implements GameService, Listener {
   private boolean isNightTransition(long currentTime) {
     return currentTime > configuration.getNightStartsFrom()
       && currentTime < configuration.getNightStartsTo();
+  }
+  
+  public @NotNull String getDaysString(int days) {
+    int lastTwoDigits = days % 100;
+    if (lastTwoDigits >= 11 && lastTwoDigits <= 14) {
+      return "дней";
+    }
+    
+    int lastDigit = days % 10;
+    return switch (lastDigit) {
+      case 1 -> "день";
+      case 2, 3, 4 -> "дня";
+      default -> "дней";
+    };
+  }
+  
+  public @NotNull String getLeftString(int days) {
+    int lastTwoDigits = days % 100;
+    if (lastTwoDigits >= 11 && lastTwoDigits <= 14) {
+      return "Осталось";
+    }
+    
+    int lastDigit = days % 10;
+    return switch (lastDigit) {
+      case 1 -> "Остался";
+      default -> "Осталось";
+    };
+  }
+  
+  private Set<@NotNull PotionEffect> getAllNightZombieEffects() {
+    return configuration.getZombie()
+      .getNightEffects()
+      .values()
+      .stream()
+      .flatMap(Collection::stream)
+      .collect(Collectors.toSet());
+  }
+  
+  private Set<@NotNull PotionEffect> getAllDayZombieEffects() {
+    return configuration.getZombie()
+      .getDayEffects()
+      .values()
+      .stream()
+      .flatMap(Collection::stream)
+      .collect(Collectors.toSet());
   }
   
 }
