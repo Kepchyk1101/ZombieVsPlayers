@@ -203,6 +203,13 @@ public class GameServiceImpl implements GameService, Listener {
       configuration.saveAsync();
       long daysRemaining = 7 - currentDay;
       
+      if (!judgment && configuration.isShowRemainingDaysTitle() && daysRemaining > 0) {
+        titleService.broadcastTitle("daysRemaining", 2,
+          "%days-remaining%", daysRemaining,
+          "%days-declension%", getDaysString((int) daysRemaining),
+          "%left-declension%", getLeftString((int) daysRemaining));
+      }
+      
       if (currentDay >= 6) {
         Set<PotionEffectType> allNightEffects = configuration.getZombie()
           .getNightEffects()
@@ -219,31 +226,26 @@ public class GameServiceImpl implements GameService, Listener {
         });
       }
       
-      if (!playersWon && currentDay == 8) {
-        if (!playerService.getPlayers().isEmpty()) {
-          titleService.broadcastTitle("playersWonTitle", 2);
-          playersWon = true;
-        }
-        lastKnownDayTick = currentTime;
-        return;
-      }
-      
-      if (!judgment && currentDay == 7) {
-        titleService.broadcastTitle("judgmentNight", 2);
-        Bukkit.getOnlinePlayers().forEach(player -> player.playSound(player.getLocation(), configuration.getJudgmentNightSound(), 1.0f, 1.0f));
-        judgment = true;
-        lastKnownDayTick = currentTime;
-        return;
-      }
-      
-      if (!judgment && configuration.isShowRemainingDaysTitle()) {
-        titleService.broadcastTitle("daysRemaining", 2,
-          "%days-remaining%", daysRemaining,
-          "%days-declension%", getDaysString((int) daysRemaining),
-          "%left-declension%", getLeftString((int) daysRemaining));
-      }
     }
     lastKnownDayTick = currentTime;
+    
+    if (!judgment && currentDay == 7 && isNightTransition(currentTime)) {
+      titleService.broadcastTitle("judgmentNight", 2);
+      zombieService.startGivingFinCompass();
+      Bukkit.getOnlinePlayers().forEach(player -> player.playSound(player.getLocation(), configuration.getJudgmentNightSound(), 1.0f, 1.0f));
+      judgment = true;
+      lastKnownDayTick = currentTime;
+      return;
+    }
+    
+    if (!playersWon && currentDay == 8) {
+      if (!playerService.getPlayers().isEmpty()) {
+        titleService.broadcastTitle("playersWonTitle", 2);
+        playersWon = true;
+      }
+      lastKnownDayTick = currentTime;
+    }
+    
   }
   
   @Override

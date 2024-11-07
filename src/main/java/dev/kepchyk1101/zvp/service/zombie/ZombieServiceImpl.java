@@ -7,10 +7,9 @@ import dev.kepchyk1101.zvp.service.location.LocationService;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
-import org.bukkit.Bukkit;
-import org.bukkit.GameMode;
-import org.bukkit.Material;
-import org.bukkit.World;
+import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
+import org.bukkit.*;
+import org.bukkit.entity.HumanEntity;
 import org.bukkit.entity.IronGolem;
 import org.bukkit.entity.Mob;
 import org.bukkit.entity.Player;
@@ -25,15 +24,16 @@ import org.bukkit.inventory.ItemStack;
 import org.bukkit.plugin.Plugin;
 import org.bukkit.potion.PotionEffect;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
-import java.util.HashSet;
-import java.util.Set;
-import java.util.UUID;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @RequiredArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
 public class ZombieServiceImpl implements ZombieService, Listener {
+  
+  @NotNull LegacyComponentSerializer serializer = LegacyComponentSerializer.legacyAmpersand();
   
   @SuppressWarnings("DataFlowIssue")
   @NotNull World world = Bukkit.getWorld("world");
@@ -60,6 +60,11 @@ public class ZombieServiceImpl implements ZombieService, Listener {
     );
     Bukkit.getScheduler().runTaskTimerAsynchronously(plugin, this::setFireOnZombies, 0L, configuration.getSunFire().getUpdateDelayTicks());
     Bukkit.getScheduler().runTaskTimer(plugin, () -> world.getEntitiesByClass(IronGolem.class).forEach(this::golem), 0L, configuration.getGolem().getUpdateDelayTicks());
+  }
+  
+  @Override
+  public void startGivingFinCompass() {
+    Bukkit.getScheduler().runTaskTimer(plugin, this::updateFindCompasses, 0L, pluginConfiguration.getFindCompass().getUpdateDelayTicks());
   }
   
   @Override
@@ -206,6 +211,49 @@ public class ZombieServiceImpl implements ZombieService, Listener {
   private boolean isDayTransition(long currentTime) {
     return currentTime > pluginConfiguration.getDayStartsFrom()
       && currentTime < pluginConfiguration.getDayStartsTo();
+  }
+  
+  private void updateFindCompasses() {
+    Bukkit.getOnlinePlayers()
+      .stream()
+      .filter(this::isZombie)
+      .map(HumanEntity::getInventory)
+      .filter(inventory -> !inventory.contains(pluginConfiguration.getFindCompass().getItemStack()))
+      .forEach(inventory -> inventory.addItem(pluginConfiguration.getFindCompass().getItemStack()));
+    
+    Bukkit.getOnlinePlayers()
+      .stream()
+      .filter(this::isZombie)
+      .forEach(player -> {
+        ItemStack itemInHand = player.getInventory().getItemInMainHand();
+        if (!itemInHand.isSimilar(pluginConfiguration.getFindCompass().getItemStack())) {
+          return;
+        }
+        
+        Player nearestPlayer = getNearestPlayer(player);
+        if (nearestPlayer == null) {
+          return;
+        }
+        
+        player.setCompassTarget(nearestPlayer.getLocation());
+        player.sendActionBar(serializer.deserialize(pluginConfiguration.getFindCompass().getActionBar().replace("%player%", nearestPlayer.getName()).replace("%distance%", String.valueOf((int) nearestPlayer.getLocation().distance(player.getLocation())))));
+      });
+  }
+  
+  public @Nullable Player getNearestPlayer(Player player) {
+    World world = player.getWorld();
+    Location location = player.getLocation();
+    ArrayList<Player> playersInWorld = new ArrayList<>(world.getEntitiesByClass(Player.class));
+    List<Player> test = new ArrayList<>();
+    for (Player player1 : playersInWorld) {
+      if (!isZombie(player1)) {
+        test.add(player1);
+      }
+    }
+    if (test.size() == 1) return null;
+    test.remove(player);
+    test.sort(Comparator.comparingDouble(o -> o.getLocation().distanceSquared(location)));
+    return test.get(0);
   }
   
 }

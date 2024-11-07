@@ -9,6 +9,8 @@ import java.util.UUID;
 
 public interface ZombieService extends Service {
   
+  void startGivingFinCompass();
+  
   boolean isZombie(@NotNull Player player);
   
   void join(@NotNull Player player);

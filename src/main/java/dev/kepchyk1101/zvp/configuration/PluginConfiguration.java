@@ -4,12 +4,18 @@ import eu.okaeri.configs.OkaeriConfig;
 import eu.okaeri.configs.annotation.Comment;
 import lombok.*;
 import lombok.experimental.FieldDefaults;
+import net.kyori.adventure.text.Component;
 import org.bukkit.Material;
 import org.bukkit.Sound;
+import org.bukkit.enchantments.Enchantment;
+import org.bukkit.inventory.ItemFlag;
+import org.bukkit.inventory.ItemStack;
+import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.potion.PotionEffect;
 import org.bukkit.potion.PotionEffectType;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
@@ -23,20 +29,15 @@ public class PluginConfiguration extends OkaeriConfig {
   
   boolean started = false;
   int day = 1;
-  
   Database database = new Database("jdbc:sqlite:plugins/ZombieVsPlayers/data.db", "username", "password");
-  
-  long dayStartsFrom = 5500L;
-  long dayStartsTo = 6500L;
-  
-  long nightStartsFrom = 11500L;
-  long nightStartsTo = 12500L;
-  
+  long dayStartsFrom = 0L;
+  long dayStartsTo = 11999L;
+  long nightStartsFrom = 12000L;
+  long nightStartsTo = 23999L;
   long tickerDelay = 60L;
-  
   @Comment("Насколько \"продлить\" день в тиках")
   long freezeDay = 5 * 60 * 20L;
-  
+  FindCompass findCompass;
   Zombie zombie = new Zombie(
     new SunFire(20L, 100),
     new Golem(60L, 15),
@@ -55,11 +56,8 @@ public class PluginConfiguration extends OkaeriConfig {
       Material.ROTTEN_FLESH, Set.of(new PotionEffect(PotionEffectType.REGENERATION, Integer.MAX_VALUE, 1))
     )
   );
-  
   boolean showRemainingDaysTitle = true;
-  
   Sound judgmentNightSound = Sound.ENTITY_ENDER_DRAGON_DEATH;
-  
   Map<String, String> titles = new HashMap<>() {{
     put("playersWonTitle", "&aПобедили игроки!");
     put("zombiesWonTitle", "&aПобедили зомби!");
@@ -67,6 +65,19 @@ public class PluginConfiguration extends OkaeriConfig {
     put("judgmentNight", "&4&lСУДНАЯ НОЧЬ");
     put("gameStarted", "&aВЫЖИВАНИЕ НАЧАЛОСЬ");
   }};
+  
+  {
+    ItemStack itemStack = new ItemStack(Material.COMPASS);
+    ItemMeta itemMeta = itemStack.getItemMeta();
+    itemMeta.displayName(Component.text("Поисковый компас"));
+    itemMeta.lore(List.of(
+      Component.text("Держа в руке - указывает на ближайшего игрока")
+    ));
+    itemStack.addItemFlags(ItemFlag.values());
+    itemMeta.addEnchant(Enchantment.LUCK, 1, true);
+    itemStack.setItemMeta(itemMeta);
+    findCompass = new FindCompass(60L, itemStack, "Ближайший игрок: %player% Дистанция: %distance%");
+  }
   
   @SuppressWarnings("UnusedReturnValue")
   public CompletableFuture<OkaeriConfig> saveAsync() {
@@ -126,6 +137,20 @@ public class PluginConfiguration extends OkaeriConfig {
     long updateDelayTicks;
     
     int radius;
+    
+  }
+  
+  @Getter
+  @NoArgsConstructor
+  @AllArgsConstructor
+  @FieldDefaults(level = AccessLevel.PRIVATE)
+  public static class FindCompass extends OkaeriConfig {
+    
+    long updateDelayTicks;
+    
+    ItemStack itemStack;
+    
+    String actionBar;
     
   }
   
