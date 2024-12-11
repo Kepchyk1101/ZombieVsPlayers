@@ -20,7 +20,7 @@ public class LocationServiceImpl implements LocationService {
   public Optional<@NotNull Player> findNearestPlayerInRadius(@NotNull Location location, double radius) {
     Player nearestPlayer = null;
     double nearestDistance = radius;
-    for (Player player : Bukkit.getOnlinePlayers()) {
+    for (Player player : location.getWorld().getPlayers()) {
       double distance = player.getLocation().distance(location);
       
       if (distance <= radius && (nearestPlayer == null || distance < nearestDistance)) {

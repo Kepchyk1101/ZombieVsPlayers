@@ -250,8 +250,10 @@ public class ZombieServiceImpl implements ZombieService, Listener {
         test.add(player1);
       }
     }
-    if (test.size() == 1) return null;
     test.remove(player);
+    if (test.isEmpty()) {
+      return null;
+    }
     test.sort(Comparator.comparingDouble(o -> o.getLocation().distanceSquared(location)));
     return test.get(0);
   }
